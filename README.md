@@ -1,114 +1,52 @@
 # Nemotron Security Analyzer
 
-AI-powered security analysis for Python codebases. Works with local Ollama or remote litellm proxy.
+AI-powered security analysis for Python codebases. Uses opencode or litellm proxy.
 
 ## Requirements
 
 - Python 3.10+
-- `pip install openai`
-- One of:
-  - [Ollama](https://ollama.com) (local, `analyze.sh`)
-  - litellm proxy (remote, `analyze.py`)
-- Optional: `semgrep`, `bandit`, `trivy`
+- [uv](https://docs.astral.sh/uv/) (for setup)
+- `opencode` installed and configured
+- Optional: `semgrep`, `bandit`, `trivy` for enhanced scanning
 
-## Quick Start
-
-### Option A: Local Ollama (analyze.sh)
+## Setup
 
 ```bash
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull nemotron-3.5-lightning
-./analyze.sh ~/repos/nova
-```
-
-### Option B: litellm proxy (analyze.py)
-
-```bash
-pip install openai
-export LITELLM_HOST=http://<your-litellm-host>:4000
-python3 analyze.py ~/repos/nova
+git clone <repo-url> ~/nemotron-security
+cd ~/nemotron-security
+./setup.sh
 ```
 
 ## Usage
 
-```bash
-# analyze.sh (Ollama)
-./analyze.sh ~/repos/nova
-./analyze.sh ~/repos/nova --model nemotron:70b --focus api,compute
+### Option A: opencode (recommended)
 
-# analyze.py (litellm proxy)
-export LITELLM_HOST=http://192.168.1.100:4000
+Uses whatever model is configured in your opencode setup. No extra API keys needed.
+
+```bash
+./analyze-opencode.sh ~/repos/nova
+./analyze-opencode.sh ~/repos/nova --focus api,compute
+./analyze-opencode.sh ~/repos/nova --scanners
+```
+
+### Option B: litellm proxy
+
+Connects to a litellm proxy for access to multiple models (Nemotron, GPT-4o, Claude, etc.).
+
+```bash
+export LITELLM_HOST=http://127.0.0.1:4000
 python3 analyze.py ~/repos/nova
 python3 analyze.py ~/repos/nova --model openai/gpt-4o
 python3 analyze.py ~/repos/nova --model ollama/nemotron-3.5-lightning
-python3 analyze.py ~/repos/nova --focus api --scanners --output ~/report.md
 ```
 
-## Environment Variables
+## Options
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `LITELLM_HOST` | `http://127.0.0.1:4000` | litellm proxy URL (analyze.py only) |
-
-## Model Selection
-
-### Via Ollama (analyze.sh)
-
-```bash
-./analyze.sh ~/repos/nova --model nemotron-3.5-lightning  # default
-./analyze.sh ~/repos/nova --model nemotron-mini
-./analyze.sh ~/repos/nova --model nemotron:70b
-```
-
-### Via litellm proxy (analyze.py)
-
-Model names depend on your litellm config. Common patterns:
-
-```bash
-# Ollama models through litellm
-python3 analyze.py ~/repos/nova --model ollama/nemotron-3.5-lightning
-python3 analyze.py ~/repos/nova --model ollama/nemotron-mini
-
-# OpenAI through litellm
-python3 analyze.py ~/repos/nova --model openai/gpt-4o
-python3 analyze.py ~/repos/nova --model openai/gpt-4o-mini
-
-# Anthropic through litellm
-python3 analyze.py ~/repos/nova --model anthropic/claude-sonnet-4-20250514
-```
-
-Check your litellm config for available model names.
-
-## litellm Proxy Setup
-
-If you don't have a litellm proxy yet, here's how to set one up:
-
-```bash
-# Install litellm
-pip install litellm[proxy]
-
-# Run with Ollama backend
-litellm --model ollama/nemotron-3.5-lightning --port 4000
-
-# Run with multiple backends (config.yaml)
-litellm --config config.yaml --port 4000
-```
-
-Example `config.yaml`:
-```yaml
-model_list:
-  - model_name: nemotron-3.5-lightning
-    litellm_params:
-      model: ollama/nemotron-3.5-lightning
-  - model_name: gpt-4o
-    litellm_params:
-      model: openai/gpt-4o
-      api_key: os.environ/OPENAI_API_KEY
-  - model_name: claude
-    litellm_params:
-      model: anthropic/claude-sonnet-4-20250514
-      api_key: os.environ/ANTHROPIC_API_KEY
-```
+| Flag | Description |
+|------|-------------|
+| `--focus api,compute` | Only analyze specific directories |
+| `--scanners` | Also run semgrep/bandit/trivy and triage results |
+| `--output /path/to/report.md` | Custom output location |
 
 ## How It Works
 
@@ -127,20 +65,11 @@ Target Repo
 
 ## Output
 
-Reports saved to `reports/<project-name>/` by default:
+Reports saved to `reports/<project-name>/` by default.
 
-```markdown
-# Security Analysis: nova
+## Environment Variables
 
-## Scanner Triage
-(Cross-references semgrep/bandit/trivy findings)
-
-## AI Code Review
-
-### nova/api/openstack/compute/servers.py
-- Type: SQL injection
-- Severity: CRITICAL
-- Line: 142
-- Exploitation: Easy
-- Fix: Use parameterized queries...
-```
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LITELLM_HOST` | `http://127.0.0.1:4000` | litellm proxy URL (analyze.py only) |
+| `OPENCODE_BIN` | `opencode` | Path to opencode binary (analyze-opencode.sh only) |
