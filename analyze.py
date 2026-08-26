@@ -95,7 +95,7 @@ def run_scanners(target_dir: str) -> dict:
     return results
 
 
-LITELLM_HOST = os.environ.get("LITELLM_HOST", "http://localhost:4000")
+LITELLM_HOST = os.environ.get("LITELLM_HOST", "http://127.0.0.1:4000")
 
 
 def ai_analyze(model: str, prompt: str) -> str:

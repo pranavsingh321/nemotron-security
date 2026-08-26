@@ -48,7 +48,7 @@ python3 analyze.py ~/repos/nova --focus api --scanners --output ~/report.md
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LITELLM_HOST` | `http://localhost:4000` | litellm proxy URL (analyze.py only) |
+| `LITELLM_HOST` | `http://127.0.0.1:4000` | litellm proxy URL (analyze.py only) |
 
 ## Model Selection
 
