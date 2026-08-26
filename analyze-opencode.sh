@@ -2,15 +2,15 @@
 set -euo pipefail
 
 # Security Analyzer — opencode version
-# Uses opencode directly (whatever model is configured) for security review.
-# No API keys needed beyond what opencode already uses.
+# Uses opencode directly for security review with any configured model.
 #
 # Usage:
 #   ./analyze-opencode.sh ~/repos/nova
-#   ./analyze-opencode.sh ~/repos/nova --focus api,compute
-#   ./analyze-opencode.sh ~/repos/nova --scanners
+#   ./analyze-opencode.sh ~/repos/nova --model openai/gpt-4o
+#   ./analyze-opencode.sh ~/repos/nova --focus api,compute --scanners
 
-TARGET_DIR="${1:?Usage: ./analyze-opencode.sh <target-dir> [--focus DIRS] [--scanners] [--output FILE]}"
+TARGET_DIR="${1:?Usage: ./analyze-opencode.sh <target-dir> [--model MODEL] [--focus DIRS] [--scanners] [--output FILE]}"
+MODEL="ollama/nemotron-3.5-lightning"
 FOCUS=""
 OUTPUT=""
 RUN_SCANNERS=false
@@ -19,6 +19,7 @@ OPENCODE_BIN="${OPENCODE_BIN:-opencode}"
 shift
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --model)    MODEL="$2"; shift 2 ;;
     --focus)    FOCUS="$2"; shift 2 ;;
     --output)   OUTPUT="$2"; shift 2 ;;
     --scanners) RUN_SCANNERS=true; shift ;;
@@ -83,7 +84,7 @@ run_scanners() {
 
   if [[ -n "$findings" ]]; then
     log "Triaging scanner results with opencode..."
-    "$OPENCODE_BIN" run --dir "$TARGET_DIR" --auto \
+    "$OPENCODE_BIN" run --dir "$TARGET_DIR" --model "$MODEL" --auto \
       "Review these security scanner findings. For each: confirm true positive or false positive, prioritize by exploitability, suggest fixes. Output a prioritized list.
 
 Scanner results:
@@ -100,6 +101,7 @@ $findings" > "$OUTPUT"
 
 log "Nemotron Security Analyzer (opencode)"
 log "  Target: $TARGET_DIR"
+log "  Model:  $MODEL"
 log "  Output: $OUTPUT"
 [[ -n "$FOCUS" ]] && log "  Focus:  $FOCUS"
 
@@ -109,6 +111,7 @@ cat > "$OUTPUT" <<EOF
 
 **Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
 **Engine:** opencode ($OPENCODE_BIN)
+**Model:** $MODEL
 **Target:** $TARGET_DIR
 $( [[ -n "$FOCUS" ]] && echo "**Focus:** $FOCUS" )
 
@@ -141,7 +144,7 @@ for i in "${!files[@]}"; do
   num=$((i + 1))
   log "  [$num/${#files[@]}] $rel"
 
-  "$OPENCODE_BIN" run --dir "$TARGET_DIR" --auto \
+  "$OPENCODE_BIN" run --dir "$TARGET_DIR" --model "$MODEL" --auto \
     "You are a senior security engineer. Analyze this file for vulnerabilities: SQL injection, XSS, hardcoded secrets, SSRF, path traversal, command injection, privilege escalation, insecure deserialization. For each finding: type, severity (CRITICAL/HIGH/MEDIUM/LOW/INFO), line numbers, exploitation difficulty (Easy/Medium/Hard), fix recommendation. If no issues: say 'No security issues found.' Be specific, no generic warnings.
 
 File to review: $rel" >> "$OUTPUT" 2>/dev/null

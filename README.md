@@ -21,32 +21,31 @@ cd ~/nemotron-security
 
 ### Option A: opencode (recommended)
 
-Uses whatever model is configured in your opencode setup. No extra API keys needed.
+Default model: `ollama/nemotron-3.5-lightning`
 
 ```bash
 ./analyze-opencode.sh ~/repos/nova
-./analyze-opencode.sh ~/repos/nova --focus api,compute
-./analyze-opencode.sh ~/repos/nova --scanners
+./analyze-opencode.sh ~/repos/nova --model openai/gpt-4o
+./analyze-opencode.sh ~/repos/nova --model ollama/nemotron-mini
+./analyze-opencode.sh ~/repos/nova --focus api,compute --scanners
 ```
 
 ### Option B: litellm proxy
-
-Connects to a litellm proxy for access to multiple models (Nemotron, GPT-4o, Claude, etc.).
 
 ```bash
 export LITELLM_HOST=http://127.0.0.1:4000
 python3 analyze.py ~/repos/nova
 python3 analyze.py ~/repos/nova --model openai/gpt-4o
-python3 analyze.py ~/repos/nova --model ollama/nemotron-3.5-lightning
 ```
 
 ## Options
 
-| Flag | Description |
-|------|-------------|
-| `--focus api,compute` | Only analyze specific directories |
-| `--scanners` | Also run semgrep/bandit/trivy and triage results |
-| `--output /path/to/report.md` | Custom output location |
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--model` | `ollama/nemotron-3.5-lightning` | Model to use (provider/model format) |
+| `--focus` | all .py files | Only analyze specific directories |
+| `--scanners` | off | Also run semgrep/bandit/trivy and triage results |
+| `--output` | `reports/<name>.md` | Custom output location |
 
 ## How It Works
 
@@ -72,4 +71,4 @@ Reports saved to `reports/<project-name>/` by default.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LITELLM_HOST` | `http://127.0.0.1:4000` | litellm proxy URL (analyze.py only) |
-| `OPENCODE_BIN` | `opencode` | Path to opencode binary (analyze-opencode.sh only) |
+| `OPENCODE_BIN` | `opencode` | Path to opencode binary |
