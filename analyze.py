@@ -167,8 +167,8 @@ Scanner results:
 def main():
     parser = argparse.ArgumentParser(description="AI-powered security analyzer")
     parser.add_argument("target_dir", help="Repository to analyze")
-    parser.add_argument("--model", default="nemotron-3.5-lightning",
-                        help="Model name as configured in litellm proxy (default: nemotron-3.5-lightning)")
+    parser.add_argument("--model", default="openai/nemotron-3.5-light",
+                        help="Model name as configured in litellm proxy (default: openai/nemotron-3.5-light)")
     parser.add_argument("--focus", help="Comma-separated dirs to focus on (e.g., api,compute)")
     parser.add_argument("--output", help="Output file (default: reports/<name>.md)")
     parser.add_argument("--scanners", action="store_true", help="Also run semgrep/bandit/trivy")

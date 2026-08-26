@@ -42,7 +42,7 @@ python3 analyze.py ~/repos/nova --model openai/gpt-4o
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--model` | `ollama/nemotron-3.5-lightning` | Model to use (provider/model format) |
+| `--model` | `openai/nemotron-3.5-light` | Model to use (provider/model format) |
 | `--focus` | all .py files | Only analyze specific directories |
 | `--scanners` | off | Also run semgrep/bandit/trivy and triage results |
 | `--output` | `reports/<name>.md` | Custom output location |
@@ -70,5 +70,6 @@ Reports saved to `reports/<project-name>/` by default.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `ANALYZE_MODEL` | `openai/nemotron-3.5-light` | Default model for analyze-opencode.sh |
 | `LITELLM_HOST` | `http://127.0.0.1:4000` | litellm proxy URL (analyze.py only) |
 | `OPENCODE_BIN` | `opencode` | Path to opencode binary |
