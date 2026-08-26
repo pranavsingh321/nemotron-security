@@ -1,53 +1,113 @@
 # Nemotron Security Analyzer
 
-AI-powered security analysis for Python codebases using NVIDIA Nemotron via Ollama. Runs locally — no data leaves your machine.
+AI-powered security analysis for Python codebases. Works with local Ollama or remote litellm proxy.
 
 ## Requirements
 
-- [Ollama](https://ollama.com) installed
 - Python 3.10+
-- Optional: `semgrep`, `bandit`, `trivy` for enhanced scanning
+- `pip install openai`
+- One of:
+  - [Ollama](https://ollama.com) (local, `analyze.sh`)
+  - litellm proxy (remote, `analyze.py`)
+- Optional: `semgrep`, `bandit`, `trivy`
 
 ## Quick Start
 
+### Option A: Local Ollama (analyze.sh)
+
 ```bash
-# Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
-
-# Pull a model (pick one)
-ollama pull nemotron-3.5-lightning  # 30B params, 3B active — fast + smart (default)
-ollama pull nemotron-mini           # 8B params — fastest
-ollama pull nemotron:70b            # 70B params — best quality, needs ~40GB RAM
-
-# Clone and run
-git clone <repo-url> ~/nemotron-security
-cd ~/nemotron-security
-chmod +x analyze.sh
-
-# Analyze a repo
+ollama pull nemotron-3.5-lightning
 ./analyze.sh ~/repos/nova
+```
+
+### Option B: litellm proxy (analyze.py)
+
+```bash
+pip install openai
+export LITELLM_HOST=http://<your-litellm-host>:4000
+python3 analyze.py ~/repos/nova
 ```
 
 ## Usage
 
 ```bash
-# Basic analysis (all .py files, excluding tests)
-./analyze.sh ~/repos/my-project
+# analyze.sh (Ollama)
+./analyze.sh ~/repos/nova
+./analyze.sh ~/repos/nova --model nemotron:70b --focus api,compute
 
-# Use a larger model for better results
-./analyze.sh ~/repos/my-project --model nemotron:70b
+# analyze.py (litellm proxy)
+export LITELLM_HOST=http://192.168.1.100:4000
+python3 analyze.py ~/repos/nova
+python3 analyze.py ~/repos/nova --model openai/gpt-4o
+python3 analyze.py ~/repos/nova --model ollama/nemotron-3.5-lightning
+python3 analyze.py ~/repos/nova --focus api --scanners --output ~/report.md
+```
 
-# Focus on specific directories
-./analyze.sh ~/repos/my-project --focus api,compute
+## Environment Variables
 
-# Custom output location
-./analyze.sh ~/repos/my-project --output /tmp/security-report.md
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LITELLM_HOST` | `http://localhost:4000` | litellm proxy URL (analyze.py only) |
 
-# Also run semgrep + bandit + trivy, then triage with AI
-./analyze.sh ~/repos/my-project --scanners
+## Model Selection
 
-# Combine all options
-./analyze.sh ~/repos/nova --model nemotron:70b --focus api,compute --scanners --output ~/reports/nova-security.md
+### Via Ollama (analyze.sh)
+
+```bash
+./analyze.sh ~/repos/nova --model nemotron-3.5-lightning  # default
+./analyze.sh ~/repos/nova --model nemotron-mini
+./analyze.sh ~/repos/nova --model nemotron:70b
+```
+
+### Via litellm proxy (analyze.py)
+
+Model names depend on your litellm config. Common patterns:
+
+```bash
+# Ollama models through litellm
+python3 analyze.py ~/repos/nova --model ollama/nemotron-3.5-lightning
+python3 analyze.py ~/repos/nova --model ollama/nemotron-mini
+
+# OpenAI through litellm
+python3 analyze.py ~/repos/nova --model openai/gpt-4o
+python3 analyze.py ~/repos/nova --model openai/gpt-4o-mini
+
+# Anthropic through litellm
+python3 analyze.py ~/repos/nova --model anthropic/claude-sonnet-4-20250514
+```
+
+Check your litellm config for available model names.
+
+## litellm Proxy Setup
+
+If you don't have a litellm proxy yet, here's how to set one up:
+
+```bash
+# Install litellm
+pip install litellm[proxy]
+
+# Run with Ollama backend
+litellm --model ollama/nemotron-3.5-lightning --port 4000
+
+# Run with multiple backends (config.yaml)
+litellm --config config.yaml --port 4000
+```
+
+Example `config.yaml`:
+```yaml
+model_list:
+  - model_name: nemotron-3.5-lightning
+    litellm_params:
+      model: ollama/nemotron-3.5-lightning
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: claude
+    litellm_params:
+      model: anthropic/claude-sonnet-4-20250514
+      api_key: os.environ/ANTHROPIC_API_KEY
 ```
 
 ## How It Works
@@ -55,45 +115,19 @@ chmod +x analyze.sh
 ```
 Target Repo
     │
-    ├── [optional] Scanner Phase
-    │   ├── semgrep (pattern-based vulns)
-    │   ├── bandit (Python security linting)
-    │   └── trivy (dependency CVEs)
-    │   │
-    │   └── AI triages scanner results
-    │       → true positive / false positive
-    │       → priority ranking
+    ├── [optional] Scanner Phase (--scanners)
+    │   ├── semgrep, bandit, trivy
+    │   └── AI triages findings → true/false positive
     │
     └── AI Code Review Phase
         ├── Collects .py files (excludes tests)
-        ├── Sends each file to Nemotron
+        ├── Sends each file to model
         └── Reports: type, severity, line, fix
-```
-
-## Models
-
-| Model | Params | Active | RAM | Speed | Quality |
-|-------|--------|--------|-----|-------|---------|
-| `nemotron-mini` | 8B | 8B | 8GB | Fast | Good |
-| `nemotron-3.5-lightning` | 30B | 3B | 16GB | Fast | Better |
-| `nemotron:70b` | 70B | 70B | 40GB | Slow | Best |
-| `llama3.1:8b` | 8B | 8B | 8GB | Fast | Good |
-| `codellama:13b` | 13B | 13B | 16GB | Medium | Good |
-
-```bash
-# Check available models
-ollama list
-
-# Pull a new model
-ollama pull <model-name>
-
-# Remove a model
-ollama rm <model-name>
 ```
 
 ## Output
 
-Reports are saved to `reports/<project-name>/` by default:
+Reports saved to `reports/<project-name>/` by default:
 
 ```markdown
 # Security Analysis: nova
@@ -109,59 +143,4 @@ Reports are saved to `reports/<project-name>/` by default:
 - Line: 142
 - Exploitation: Easy
 - Fix: Use parameterized queries...
-
-### nova/compute/manager.py
-- No security issues found.
-```
-
-## Integration with Banneker
-
-```bash
-# Run banneker pipeline + security analysis
-cd ~/repos/banneker
-TARGET_DIR=~/repos/nova MINIMAL=true ./banneker-pipeline.sh
-./analyze.sh ~/repos/nova --scanners --focus api,compute
-```
-
-## Manual Ollama Usage
-
-```bash
-# Interactive chat
-ollama run nemotron-mini
-
-# Single prompt
-ollama run nemotron-mini "Review this code for SQL injection: $(cat file.py)"
-
-# Pipe content
-cat file.py | ollama run nemotron-mini "Find security vulnerabilities in this code"
-
-# API (runs in background)
-curl http://localhost:11434/api/generate -d '{
-  "model": "nemotron-mini",
-  "prompt": "Review for security issues",
-  "stream": false
-}'
-```
-
-## Troubleshooting
-
-**Ollama not starting:**
-```bash
-ollama serve  # starts on port 11434
-```
-
-**Model too large for RAM:**
-```bash
-# Use the smaller model
-ollama pull nemotron-mini
-./analyze.sh ~/repos/nova --model nemotron-mini
-```
-
-**Slow analysis:**
-```bash
-# Focus on specific dirs instead of entire repo
-./analyze.sh ~/repos/nova --focus api
-
-# Or reduce file count
-find ~/repos/nova/nova -name "*.py" -not -path "*/test*" | head -20 | xargs -I{} ollama run nemotron-mini "Security review: $(cat {})"
 ```
