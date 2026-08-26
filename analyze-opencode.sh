@@ -84,11 +84,11 @@ run_scanners() {
 
   if [[ -n "$findings" ]]; then
     log "Triaging scanner results with opencode..."
-    "$OPENCODE_BIN" run --dir "$TARGET_DIR" --model "$MODEL" --auto \
-      "Review these security scanner findings. For each: confirm true positive or false positive, prioritize by exploitability, suggest fixes. Output a prioritized list.
+  "$OPENCODE_BIN" run --dir "$TARGET_DIR" --model "$MODEL" --auto \
+    "Review these security scanner findings. For each: confirm true positive or false positive, prioritize by exploitability, suggest fixes. Output a prioritized list.
 
 Scanner results:
-$findings" > "$OUTPUT"
+$findings" > "$OUTPUT" || true
     echo "" >> "$OUTPUT"
     echo "---" >> "$OUTPUT"
     echo "" >> "$OUTPUT"
@@ -147,7 +147,7 @@ for i in "${!files[@]}"; do
   "$OPENCODE_BIN" run --dir "$TARGET_DIR" --model "$MODEL" --auto \
     "You are a senior security engineer. Analyze this file for vulnerabilities: SQL injection, XSS, hardcoded secrets, SSRF, path traversal, command injection, privilege escalation, insecure deserialization. For each finding: type, severity (CRITICAL/HIGH/MEDIUM/LOW/INFO), line numbers, exploitation difficulty (Easy/Medium/Hard), fix recommendation. If no issues: say 'No security issues found.' Be specific, no generic warnings.
 
-File to review: $rel" >> "$OUTPUT" 2>/dev/null
+File to review: $rel" >> "$OUTPUT" 2>/dev/null || true
 
   echo "" >> "$OUTPUT"
   echo "---" >> "$OUTPUT"
