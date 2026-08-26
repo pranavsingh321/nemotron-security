@@ -21,7 +21,7 @@ cd ~/nemotron-security
 
 ### Option A: opencode (recommended)
 
-Default model: `ollama/nemotron-3.5-lightning`
+Default model: `openai/nemotron-3.5-light`
 
 ```bash
 ./analyze-opencode.sh ~/repos/nova
