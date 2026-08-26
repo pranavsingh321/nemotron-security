@@ -11,7 +11,7 @@ set -euo pipefail
 #   ./analyze.sh ~/repos/my-project --output /tmp/report.md
 
 TARGET_DIR="${1:?Usage: ./analyze.sh <target-dir> [--model MODEL] [--focus DIRS] [--output FILE] [--scanners]}"
-MODEL="${MODEL:-nemotron-mini}"
+MODEL="${MODEL:-nemotron-3.5-lightning}"
 FOCUS=""
 OUTPUT=""
 RUN_SCANNERS=false

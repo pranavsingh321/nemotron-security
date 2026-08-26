@@ -15,9 +15,9 @@ AI-powered security analysis for Python codebases using NVIDIA Nemotron via Olla
 curl -fsSL https://ollama.com/install.sh | sh
 
 # Pull a model (pick one)
-ollama pull nemotron-mini    # fast, 8B params (default)
-ollama pull nemotron:70b     # better quality, needs ~40GB RAM
-ollama pull llama3.1:8b      # alternative if nemotron unavailable
+ollama pull nemotron-3.5-lightning  # 30B params, 3B active — fast + smart (default)
+ollama pull nemotron-mini           # 8B params — fastest
+ollama pull nemotron:70b            # 70B params — best quality, needs ~40GB RAM
 
 # Clone and run
 git clone <repo-url> ~/nemotron-security
@@ -72,12 +72,13 @@ Target Repo
 
 ## Models
 
-| Model | Size | RAM | Speed | Quality |
-|-------|------|-----|-------|---------|
-| `nemotron-mini` | 8B | 8GB | Fast | Good |
-| `nemotron:70b` | 70B | 40GB | Slow | Best |
-| `llama3.1:8b` | 8B | 8GB | Fast | Good |
-| `codellama:13b` | 13B | 16GB | Medium | Good |
+| Model | Params | Active | RAM | Speed | Quality |
+|-------|--------|--------|-----|-------|---------|
+| `nemotron-mini` | 8B | 8B | 8GB | Fast | Good |
+| `nemotron-3.5-lightning` | 30B | 3B | 16GB | Fast | Better |
+| `nemotron:70b` | 70B | 70B | 40GB | Slow | Best |
+| `llama3.1:8b` | 8B | 8B | 8GB | Fast | Good |
+| `codellama:13b` | 13B | 13B | 16GB | Medium | Good |
 
 ```bash
 # Check available models
