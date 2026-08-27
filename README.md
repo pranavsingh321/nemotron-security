@@ -21,7 +21,7 @@ cd ~/nemotron-security
 
 ### Option A: opencode (recommended)
 
-Default model: `local-spark/nemotron-3.5-light`
+Default model: `local-spark/qwen3.6-36b`
 
 ```bash
 ./analyze-opencode.sh ~/repos/nova
@@ -42,7 +42,7 @@ python3 analyze.py ~/repos/nova --model openai/gpt-4o
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--model` | `local-spark/nemotron-3.5-light` | Model to use (provider/model format) |
+| `--model` | `local-spark/qwen3.6-36b` | Model to use (provider/model format) |
 | `--focus` | all .py files | Only analyze specific directories |
 | `--scanners` | off | Also run semgrep/bandit/trivy and triage results |
 | `--output` | `reports/<name>.md` | Custom output location |
@@ -80,6 +80,6 @@ Reports saved to `reports/<project-name>.md` by default. After the full analysis
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ANALYZE_MODEL` | `local-spark/nemotron-3.5-light` | Default model for analyze-opencode.sh |
+| `ANALYZE_MODEL` | `local-spark/qwen3.6-36b` | Default model for analyze-opencode.sh |
 | `LITELLM_HOST` | `http://127.0.0.1:4000` | litellm proxy URL (analyze.py only) |
 | `OPENCODE_BIN` | `opencode` | Path to opencode binary |

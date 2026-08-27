@@ -320,8 +320,8 @@ Scanner results:
 def main():
     parser = argparse.ArgumentParser(description="AI-powered security analyzer")
     parser.add_argument("target_dir", help="Repository to analyze")
-    parser.add_argument("--model", default="local-spark/nemotron-3.5-light",
-                        help="Model name (default: local-spark/nemotron-3.5-light)")
+    parser.add_argument("--model", default="local-spark/qwen3.6-36b",
+                        help="Model name (default: local-spark/qwen3.6-36b)")
     parser.add_argument("--focus", help="Comma-separated dirs to focus on")
     parser.add_argument("--output", help="Output file path")
     parser.add_argument("--scanners", action="store_true",

@@ -10,7 +10,7 @@ set -euo pipefail
 #   ./analyze-opencode.sh ~/repos/nova --focus api,compute --scanners
 
 TARGET_DIR="${1:?Usage: ./analyze-opencode.sh <target-dir> [--model MODEL] [--focus DIRS] [--scanners] [--output FILE] [--max-files N]}"
-MODEL="${ANALYZE_MODEL:-local-spark/nemotron-3.5-light}"
+MODEL="${ANALYZE_MODEL:-local-spark/qwen3.6-36b}"
 FOCUS=""
 OUTPUT=""
 RUN_SCANNERS=false
