@@ -21,7 +21,7 @@ cd ~/nemotron-security
 
 ### Option A: opencode (recommended)
 
-Default model: `openai/nemotron-3.5-light`
+Default model: `local-spark/nemotron-3.5-light`
 
 ```bash
 ./analyze-opencode.sh ~/repos/nova
@@ -42,24 +42,34 @@ python3 analyze.py ~/repos/nova --model openai/gpt-4o
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--model` | `openai/nemotron-3.5-light` | Model to use (provider/model format) |
+| `--model` | `local-spark/nemotron-3.5-light` | Model to use (provider/model format) |
 | `--focus` | all .py files | Only analyze specific directories |
 | `--scanners` | off | Also run semgrep/bandit/trivy and triage results |
 | `--output` | `reports/<name>.md` | Custom output location |
+| `--max-files` | 30 | Max files to analyze (risk-sorted) |
 
 ## How It Works
+
+The analyzer uses a three-phase approach:
+
+1. **Scanner phase** (`--scanners`): semgrep/bandit/trivy find hotspots, which are triaged by AI
+2. **Project context**: AI identifies framework + highest-risk components first
+3. **AI code review**: files are risk-sorted (auth, api, sql, upload, secret, exec in filename rank higher) and reviewed one at a time with **full file content** passed to the model, guided by scanner findings and project context
 
 ```
 Target Repo
     │
-    ├── [optional] Scanner Phase (--scanners)
+    ├── Phase 1: Scanners (--scanners)
     │   ├── semgrep, bandit, trivy
     │   └── AI triages findings → true/false positive
     │
-    └── AI Code Review Phase
-        ├── Collects .py files (excludes tests)
-        ├── Sends each file to model
-        └── Reports: type, severity, line, fix
+    ├── Phase 2: Project context
+    │   └── AI identifies framework + risk areas
+    │
+    └── Phase 3: AI Code Review
+        ├── Collects .py files, risk-sorted
+        ├── Passes full file content + context to model
+        └── Reports: type, severity, line, exploit, fix
 ```
 
 ## Output
@@ -70,6 +80,6 @@ Reports saved to `reports/<project-name>/` by default.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ANALYZE_MODEL` | `openai/nemotron-3.5-light` | Default model for analyze-opencode.sh |
+| `ANALYZE_MODEL` | `local-spark/nemotron-3.5-light` | Default model for analyze-opencode.sh |
 | `LITELLM_HOST` | `http://127.0.0.1:4000` | litellm proxy URL (analyze.py only) |
 | `OPENCODE_BIN` | `opencode` | Path to opencode binary |

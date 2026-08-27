@@ -9,11 +9,12 @@ set -euo pipefail
 #   ./analyze-opencode.sh ~/repos/nova --model openai/gpt-4o
 #   ./analyze-opencode.sh ~/repos/nova --focus api,compute --scanners
 
-TARGET_DIR="${1:?Usage: ./analyze-opencode.sh <target-dir> [--model MODEL] [--focus DIRS] [--scanners] [--output FILE]}"
+TARGET_DIR="${1:?Usage: ./analyze-opencode.sh <target-dir> [--model MODEL] [--focus DIRS] [--scanners] [--output FILE] [--max-files N]}"
 MODEL="${ANALYZE_MODEL:-local-spark/nemotron-3.5-light}"
 FOCUS=""
 OUTPUT=""
 RUN_SCANNERS=false
+MAX_FILES=30
 OPENCODE_BIN="${OPENCODE_BIN:-opencode}"
 
 shift
@@ -23,6 +24,7 @@ while [[ $# -gt 0 ]]; do
     --focus)    FOCUS="$2"; shift 2 ;;
     --output)   OUTPUT="$2"; shift 2 ;;
     --scanners) RUN_SCANNERS=true; shift ;;
+    --max-files) MAX_FILES="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
@@ -41,14 +43,36 @@ collect_files() {
   local dir="$1"
   local focus="$2"
 
+  local all_files=()
   if [[ -n "$focus" ]]; then
     IFS=',' read -ra FOCUS_DIRS <<< "$focus"
     for d in "${FOCUS_DIRS[@]}"; do
-      find "$dir" -path "*/$d/*.py" -not -path "*/test*" -not -path "*/.tox/*" -not -path "*/.git/*" 2>/dev/null
+      while IFS= read -r f; do
+        all_files+=("$f")
+      done < <(find "$dir" -path "*/$d/*.py" -not -path "*/test*" -not -path "*/tests/*" -not -path "*/.tox/*" -not -path "*/.git/*" -not -path "*/migrations/*" 2>/dev/null)
     done
   else
-    find "$dir" -name "*.py" -not -path "*/test*" -not -path "*/.tox/*" -not -path "*/.git/*" 2>/dev/null
-  fi | head -30
+    while IFS= read -r f; do
+      all_files+=("$f")
+    done < <(find "$dir" -name "*.py" -not -path "*/test*" -not -path "*/tests/*" -not -path "*/.tox/*" -not -path "*/.git/*" -not -path "*/migrations/*" 2>/dev/null)
+  fi
+
+  # Sort by risk: files with auth/api/view/sql/upload/secret in name first
+  printf '%s\n' "${all_files[@]}" | awk '{
+    n = tolower($0)
+    score = 0
+    if (n ~ /auth|login|register|session/) score += 20
+    if (n ~ /view|api|endpoint|route|handler/) score += 15
+    if (n ~ /sql|query|database|db|cursor/) score += 15
+    if (n ~ /upload|download|file|send/) score += 12
+    if (n ~ /secret|key|token|password|crypto/) score += 12
+    if (n ~ /exec|eval|shell|subprocess|command/) score += 12
+    if (n ~ /serial|deserial|pickle|yaml/) score += 10
+    if (n ~ /config|settings/) score += 8
+    if (n ~ /template|render|response/) score += 5
+    if (n ~ /middleware|permission|role/) score += 5
+    print score "\t" $0
+  }' | sort -t$'\t' -k1 -rn | cut -f2 | head -"$MAX_FILES"
 }
 
 # ---------------------------------------------------------------------------
@@ -144,10 +168,26 @@ for i in "${!files[@]}"; do
   num=$((i + 1))
   log "  [$num/${#files[@]}] $rel"
 
-  "$OPENCODE_BIN" run --dir "$TARGET_DIR" --model "$MODEL" --auto \
-    "You are a senior security engineer. Analyze this file for vulnerabilities: SQL injection, XSS, hardcoded secrets, SSRF, path traversal, command injection, privilege escalation, insecure deserialization. For each finding: type, severity (CRITICAL/HIGH/MEDIUM/LOW/INFO), line numbers, exploitation difficulty (Easy/Medium/Hard), fix recommendation. If no issues: say 'No security issues found.' Be specific, no generic warnings.
+  content=$(head -c 40000 "$file" 2>/dev/null || echo "ERROR: could not read file")
 
-File to review: $rel" >> "$OUTPUT" 2>/dev/null || true
+  "$OPENCODE_BIN" run --dir "$TARGET_DIR" --model "$MODEL" --auto \
+    "You are a senior application security engineer. Find real, exploitable vulnerabilities. Do NOT report generic warnings.
+
+FOR EACH FINDING provide:
+- Vulnerability type (specific, e.g. 'SQL injection via string formatting')
+- Severity: CRITICAL / HIGH / MEDIUM / LOW / INFO
+- Exact line numbers
+- The vulnerable code snippet
+- Exploitation scenario
+- Fix with code
+
+FOCUS ON: user input to dangerous sinks (exec, eval, shell, SQL, file paths, URLs), missing auth checks, hardcoded secrets, insecure deserialization, path traversal, SSRF, command injection, XSS, auth bypass, race conditions, weak crypto.
+
+If NO real vulnerabilities: respond exactly 'No security issues found.'
+
+File: $rel
+---
+$content" >> "$OUTPUT" 2>/dev/null || true
 
   echo "" >> "$OUTPUT"
   echo "---" >> "$OUTPUT"
