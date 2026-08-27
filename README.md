@@ -74,7 +74,7 @@ Target Repo
 
 ## Output
 
-Reports saved to `reports/<project-name>/` by default.
+Reports saved to `reports/<project-name>.md` by default. After the full analysis, each run also generates an **executive summary** at `reports/<project-name>-summary.md` containing the verdict, top risks, quick wins, and notes. If the model produces no summary, a stats-only fallback summary is written instead.
 
 ## Environment Variables
 

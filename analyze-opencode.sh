@@ -195,3 +195,73 @@ $content" >> "$OUTPUT" 2>/dev/null || true
 done
 
 log "Report saved to: $OUTPUT"
+
+# ---------------------------------------------------------------------------
+# Summary generation
+# ---------------------------------------------------------------------------
+
+SUMMARY="${OUTPUT%.md}-summary.md"
+
+# Count findings by severity from the full report
+CRIT_COUNT=$(grep -ci "CRITICAL" "$OUTPUT" || true)
+HIGH_COUNT=$(grep -ci "HIGH" "$OUTPUT" || true)
+MED_COUNT=$(grep -ci "MEDIUM" "$OUTPUT" || true)
+LOW_COUNT=$(grep -ci "LOW" "$OUTPUT" || true)
+ISSUE_FILES=$(grep -c "^### " "$OUTPUT" || true)
+
+# Ask the model for a concise executive summary from the full report
+log "Generating executive summary..."
+"$OPENCODE_BIN" run --dir "$TARGET_DIR" --model "$MODEL" --auto \
+  "You are writing an executive security summary. Based on the full analysis report below, produce a concise markdown summary containing:
+1. **Verdict**: overall security posture (1-2 sentences)
+2. **Top risks**: top 5 highest-priority findings with file, severity, and one-line description
+3. **Quick wins**: 3-5 cheap, high-impact fixes to do first
+4. **Low-priority/INFO notes**: brief list
+
+Use this exact structure:
+# Security Summary: $TARGET_NAME
+
+## Verdict
+...
+
+## Top Risks
+1. [CRITICAL] path/to/file:line — description
+
+## Quick Wins
+- ...
+
+## Notes
+- ...
+
+Keep it under 40 lines. Output ONLY the markdown.
+
+Report:
+$(head -c 30000 "$OUTPUT")" > "$SUMMARY" 2>/dev/null || true
+
+# If model produced nothing, generate a stats-only fallback summary
+if [[ ! -s "$SUMMARY" ]]; then
+  log "Model summary empty, generating stats-only summary"
+  cat > "$SUMMARY" <<EOF
+# Security Summary: $TARGET_NAME
+
+**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
+**Engine:** opencode ($OPENCODE_BIN)
+**Model:** $MODEL
+**Target:** $TARGET_DIR
+
+## Scope
+- Files reviewed: $ISSUE_FILES
+- Full report: $OUTPUT
+
+## Findings by Severity (keyword count)
+- CRITICAL: $CRIT_COUNT
+- HIGH: $HIGH_COUNT
+- MEDIUM: $MED_COUNT
+- LOW: $LOW_COUNT
+
+> Note: These are keyword-frequency counts. Run the analyzer and generate the model-based
+> summary for a detailed executive overview.
+EOF
+fi
+
+log "Summary saved to: $SUMMARY"

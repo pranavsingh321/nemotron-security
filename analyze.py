@@ -424,6 +424,60 @@ def main():
     print(f"==> Report saved to: {output}")
     print(f"==> Findings: {findings_count}/{len(files)} files")
 
+    # ------------------------------------------------------------------
+    # Generate executive summary markdown
+    # ------------------------------------------------------------------
+    summary_path = output.with_name(f"{output.stem}-summary.md")
+    print(f"==> Generating executive summary...")
+
+    try:
+        report_text = output.read_text(errors="ignore")[:30000]
+        summary_prompt = f"""You are writing an executive security summary. Based on the full analysis report below, produce a concise markdown summary containing:
+1. **Verdict**: overall security posture (1-2 sentences)
+2. **Top risks**: top 5 highest-priority findings with file, severity, and one-line description
+3. **Quick wins**: 3-5 cheap, high-impact fixes to do first
+4. **Low-priority/INFO notes**: brief list
+
+Use this exact structure:
+# Security Summary: {target_name}
+
+## Verdict
+...
+
+## Top Risks
+1. [CRITICAL] path/to/file:line — description
+
+## Quick Wins
+- ...
+
+## Notes
+- ...
+
+Keep it under 40 lines. Output ONLY the markdown.
+
+Report:
+{report_text}"""
+        summary = ai_analyze(args.model, summary_prompt, max_tokens=1500)
+
+        if not summary or "Verdict" not in summary:
+            raise ValueError("Model did not produce a valid summary")
+
+        with open(summary_path, "w") as f:
+            f.write(summary.rstrip() + "\n")
+        print(f"==> Summary saved to: {summary_path}")
+    except Exception as e:
+        print(f"==> Model summary failed ({e}); writing stats-only summary")
+        with open(summary_path, "w") as f:
+            f.write(f"# Security Summary: {target_name}\n\n")
+            f.write(f"**Date:** {subprocess.getoutput('date -u +%Y-%m-%dT%H:%M:%SZ')}\n")
+            f.write(f"**Model:** {args.model}\n")
+            f.write(f"**Target:** {target_dir}\n\n")
+            f.write(f"## Scope\n\n")
+            f.write(f"- Files reviewed: {len(files)}\n")
+            f.write(f"- Files with findings: {findings_count}\n")
+            f.write(f"- Full report: {output}\n")
+        print(f"==> Summary saved to: {summary_path}")
+
 
 if __name__ == "__main__":
     main()
